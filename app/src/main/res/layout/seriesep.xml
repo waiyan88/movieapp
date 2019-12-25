@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" 
+    android:layout_width="match_parent"
+    android:layout_height="50dp">
+    
+    <TextView
+        android:id="@+id/epNo"
+        android:text="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:layout_width="100dp"
+        android:layout_height="50dp"/>
+
+    <TextView
+        android:layout_centerInParent="true"
+        android:layout_toRightOf="@id/epNo"
+        android:id="@+id/epName"
+        android:text="EpName"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:layout_width="250dp"
+        android:layout_height="50dp"/>
+
+    <ImageView
+        android:layout_toRightOf="@id/epName"
+        android:src="@drawable/ic_epsetting"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_centerInParent="true"
+        android:tint="@color/colorAccent"/>
+
+</RelativeLayout>

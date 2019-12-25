@@ -5,10 +5,12 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +19,7 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.VideoView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.GlideBuilder;
@@ -25,7 +28,16 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.gms.ads.MobileAds;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QuerySnapshot;
 
+import org.json.JSONException;
+
+import java.io.IOException;
 import java.util.ArrayList;
 
 
@@ -47,10 +59,11 @@ AdView mAdView;
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view=inflater.inflate(R.layout.fragment_movies, container, false);
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
-
-        RecyclerView rc_new_movies=view.findViewById(R.id.newmovies);
-        GridView g_new_movies=view.findViewById(R.id.allmovies);
+        final RecyclerView rc_new_movies=view.findViewById(R.id.newmovies);
+        final GridView g_new_movies=view.findViewById(R.id.allmovies);
 
         MobileAds.initialize(getContext(),GoogleAdMob.app_id);
         mAdView = view.findViewById(R.id.adView);
@@ -63,19 +76,42 @@ AdView mAdView;
         mInterstitialAd.loadAd(new AdRequest.Builder().build());
         //Create InterstitialAd
 
-        MovieModel movieModel1=new MovieModel("https://upload.wikimedia.org/wikipedia/en/thumb/b/b5/Supernatural_Season_9.jpg/220px-Supernatural_Season_9.jpg","Super Natural","Rating 9.5");
-        MovieModel movieModel2=new MovieModel("https://image.tmdb.org/t/p/w185/mo0FP1GxOFZT4UDde7RFDz5APXF.jpg","Arrow ", "Rating 9.8");
-        ArrayList<MovieModel> movieModels=new ArrayList<MovieModel>();
-        movieModels.add(movieModel1);
-        movieModels.add(movieModel2);
-        movieModels.add(movieModel1);
-        movieModels.add(movieModel2);
 
-        GridAdapter adapter=new GridAdapter(movieModels);
-        g_new_movies.setAdapter(adapter);
+        FirebaseFirestore db=FirebaseFirestore.getInstance();
+        CollectionReference movieRef=db.collection("movies");
+        movieRef.whereEqualTo("movieCategory","AllMovies").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
 
-        movieAdapter md=new movieAdapter(movieModels);
-        rc_new_movies.setAdapter(md);
+                ArrayList<MovieModel> movieModels=new ArrayList<MovieModel>();
+                for(DocumentSnapshot snapshot:queryDocumentSnapshots)
+                {
+                    MovieModel movieModel= snapshot.toObject(MovieModel.class);
+                    movieModels.add(movieModel);
+                }
+                GridAdapter adapter=new GridAdapter(movieModels);
+                g_new_movies.setAdapter(adapter);
+            }
+        });
+
+        movieRef.whereEqualTo("movieCategory","NewMovies").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+
+                ArrayList<MovieModel> movieModels=new ArrayList<MovieModel>();
+                for(DocumentSnapshot snapshot:queryDocumentSnapshots)
+                {
+                    MovieModel movieModel= snapshot.toObject(MovieModel.class);
+                    movieModels.add(movieModel);
+                }
+                movieAdapter md=new movieAdapter(movieModels);
+               rc_new_movies.setAdapter(md);
+            }
+        });
+
+
+
+
 
         LinearLayoutManager lm=new LinearLayoutManager(getContext(),RecyclerView.HORIZONTAL,false);
         rc_new_movies.setLayoutManager(lm);
@@ -100,10 +136,17 @@ AdView mAdView;
         @Override
         public void onBindViewHolder(@NonNull movieholder holder, int position) {
          final MovieModel movieModel=moviemodels.get(position);
-         Glide.with(getContext())
-                 .load(movieModel.imagelink)
+            try {
+                movieModel.movieVideoLink=MediaFireAPI.getMedaiFireFile(movieModel.movieVideoLink);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            Glide.with(getContext())
+                 .load(movieModel.movieImageLink)
                  .into(holder.imageView);
-         holder.textView.setText(movieModel.moviename);
+         holder.textView.setText(movieModel.movieName);
          holder.imageView.setOnClickListener(new View.OnClickListener() {
              @Override
              public void onClick(View view) {
@@ -119,6 +162,7 @@ AdView mAdView;
                          @Override
                          public void onAdFailedToLoad(int errorCode) {
                              Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                             ViewMovieActivity.videolink=movieModel.movieVideoLink;
                              startActivity(intent);
                          }
 
@@ -130,6 +174,7 @@ AdView mAdView;
                          @Override
                          public void onAdClicked() {
                              Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                             ViewMovieActivity.videolink=movieModel.movieVideoLink;
                              startActivity(intent);
                          }
 
@@ -141,6 +186,7 @@ AdView mAdView;
                          @Override
                          public void onAdClosed() {
                              Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                             ViewMovieActivity.videolink=movieModel.movieVideoLink;
                              startActivity(intent);
                          }
                      });
@@ -150,6 +196,7 @@ AdView mAdView;
                  }
                  else {
                      Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                     ViewMovieActivity.videolink=movieModel.movieVideoLink;
                      startActivity(intent);
                  }
              }
@@ -210,14 +257,21 @@ AdView mAdView;
         public View getView(int i, View view, ViewGroup viewGroup) {
             LayoutInflater inflater=getLayoutInflater();
             final  MovieModel movieModel=movieModels.get(i);
+            try {
+                movieModel.movieVideoLink=MediaFireAPI.getMedaiFireFile(movieModel.movieVideoLink);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
             View view1=inflater.inflate(R.layout.movieitems,null);
             ImageView imageView=view1.findViewById(R.id.movieimage);
             TextView moviename=view1.findViewById(R.id.movienamegridview);
             Glide.with(getContext())
-                    .load(movieModel.imagelink)
+                    .load(movieModel.movieImageLink)
                     .into(imageView);
 
-            moviename.setText(movieModel.moviename);
+            moviename.setText(movieModel.movieName);
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -233,6 +287,7 @@ AdView mAdView;
                             @Override
                             public void onAdFailedToLoad(int errorCode) {
                                 Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                ViewMovieActivity.videolink=movieModel.movieVideoLink;
                                 startActivity(intent);
                             }
 
@@ -254,6 +309,7 @@ AdView mAdView;
                             @Override
                             public void onAdClosed() {
                                 Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                ViewMovieActivity.videolink=movieModel.movieVideoLink;
                                 startActivity(intent);
                             }
                         });
@@ -261,6 +317,7 @@ AdView mAdView;
                     else
                     {
                         Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                        ViewMovieActivity.videolink=movieModel.movieVideoLink;
                         startActivity(intent);
                     }
 
@@ -281,6 +338,7 @@ AdView mAdView;
                             @Override
                             public void onAdFailedToLoad(int errorCode) {
                                 Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                ViewMovieActivity.videolink=movieModel.movieVideoLink;
                                 startActivity(intent);
                             }
 
@@ -302,6 +360,7 @@ AdView mAdView;
                             @Override
                             public void onAdClosed() {
                                 Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                ViewMovieActivity.videolink=movieModel.movieVideoLink;
                                 startActivity(intent);
                             }
                         });
@@ -309,6 +368,7 @@ AdView mAdView;
                     else
                     {
                         Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                        ViewMovieActivity.videolink=movieModel.movieVideoLink;
                         startActivity(intent);
                     }
                 }

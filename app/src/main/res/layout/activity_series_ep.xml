@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SeriesEpActivity">
+
+
+    <RelativeLayout
+        android:id="@+id/imagePanel"
+        android:layout_width="match_parent"
+        android:layout_height="200dp">
+        <ImageView
+            android:id="@+id/seriesIamge"
+            android:layout_width="150dp"
+            android:layout_height="200dp"
+            android:src="@drawable/sampleimage"/>
+        <TextView
+            android:id="@+id/seriesName"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_toRightOf="@id/seriesIamge"
+            android:text="Series Name"
+            android:textSize="20sp"
+            android:textColor="@color/colorBlack"
+            android:gravity="center"/>
+    </RelativeLayout>
+
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/eplist"
+        android:layout_below="@id/imagePanel"
+        android:layout_above="@id/adView"/>
+    <com.google.android.gms.ads.AdView
+        xmlns:ads="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/adView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        ads:adSize="BANNER"
+        android:layout_margin="10dp"
+        ads:adUnitId="@string/banner_id">
+    </com.google.android.gms.ads.AdView>
+</RelativeLayout>

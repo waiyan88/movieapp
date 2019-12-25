@@ -6,6 +6,7 @@ import android.graphics.Movie;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,6 +25,12 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.gms.ads.MobileAds;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 
@@ -62,16 +69,39 @@ InterstitialAd mInterstitialAd;
         recyclerView = convertview.findViewById(R.id.newseries);
 
         loadAds();
-        ArrayList<SeriesModel> seriesModels = new ArrayList<SeriesModel>();
-        seriesModels.add(new SeriesModel("https://image.tmdb.org/t/p/w185/r8BhphHIruCL2jM4sd1Zs6sMJov.jpg", "Tale of Nokdu","9.5" ));
-        seriesModels.add(new SeriesModel("https://upload.wikimedia.org/wikipedia/en/thumb/6/67/Melting_Me_Softly.jpg/250px-Melting_Me_Softly.jpg", "Melting me Softlay", "9.3"));
-        seriesModels.add(new SeriesModel("https://image.tmdb.org/t/p/w185/bBIiRnCVOifc1eaW7sCbJHSWJ68.jpg", "VIP","9.5" ));
 
-        GridApater ad = new GridApater(seriesModels);
-        gridView.setAdapter(ad);
 
-        SeriesRcAdapter rcAdapter=new SeriesRcAdapter(seriesModels);
-        recyclerView.setAdapter(rcAdapter);
+        FirebaseFirestore db=FirebaseFirestore.getInstance() ;
+        CollectionReference seriesREf=db.collection("series");
+        seriesREf.whereEqualTo("seriesCategory","AllSeries").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                ArrayList<SeriesModel>seriesModels=new ArrayList<SeriesModel>();
+                for(DocumentSnapshot s: queryDocumentSnapshots)
+                {
+                    SeriesModel model=s.toObject(SeriesModel.class);
+                    seriesModels.add(model);
+                }
+                GridApater ad = new GridApater(seriesModels);
+                gridView.setAdapter(ad);
+            }
+        });
+
+        seriesREf.whereEqualTo("seriesCategory","NewSeries").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                ArrayList<SeriesModel>seriesModels=new ArrayList<SeriesModel>();
+                for(DocumentSnapshot s: queryDocumentSnapshots)
+                {
+                    SeriesModel model=s.toObject(SeriesModel.class);
+                    seriesModels.add(model);
+                }
+                SeriesRcAdapter rcAdapter=new SeriesRcAdapter(seriesModels);
+                recyclerView.setAdapter(rcAdapter);
+            }
+        });
+
+
         LinearLayoutManager linearLayoutManager=new LinearLayoutManager(getContext(),LinearLayoutManager.HORIZONTAL,false);
         recyclerView.setLayoutManager(linearLayoutManager);
 
@@ -105,10 +135,10 @@ InterstitialAd mInterstitialAd;
         public void onBindViewHolder(@NonNull SeriesHolder holder, int position) {
             final SeriesModel seriesModel=seriesModels.get(position);
             Glide.with(getContext())
-                    .load(seriesModel.imagelink)
+                    .load(seriesModel.seriesImageLink)
                     .into(holder.movieimage);
 
-            holder.moviename.setText(seriesModel.seriesname);
+            holder.moviename.setText(seriesModel.seriesName);
             holder.movieimage.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -123,7 +153,9 @@ InterstitialAd mInterstitialAd;
 
                             @Override
                             public void onAdFailedToLoad(int errorCode) {
-                                Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                                SeriesEpActivity.seriesModel=seriesModel;
+                                SeriesEpActivity.seriesName=seriesModel.seriesName;
                                 startActivity(intent);
                             }
 
@@ -134,7 +166,9 @@ InterstitialAd mInterstitialAd;
 
                             @Override
                             public void onAdClicked() {
-                                Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                                SeriesEpActivity.seriesModel=seriesModel;
+                                SeriesEpActivity.seriesName=seriesModel.seriesName;
                                 startActivity(intent);
                             }
 
@@ -145,7 +179,9 @@ InterstitialAd mInterstitialAd;
 
                             @Override
                             public void onAdClosed() {
-                                Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                                SeriesEpActivity.seriesModel=seriesModel;
+                                SeriesEpActivity.seriesName=seriesModel.seriesName;
                                 startActivity(intent);
                             }
                         });
@@ -154,7 +190,9 @@ InterstitialAd mInterstitialAd;
 
                     }
                     else {
-                        Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                        Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                        SeriesEpActivity.seriesModel=seriesModel;
+                        SeriesEpActivity.seriesName=seriesModel.seriesName;
                         startActivity(intent);
                     }
                 }
@@ -214,9 +252,9 @@ InterstitialAd mInterstitialAd;
             ImageView seriesimag = view.findViewById(R.id.movieimage);
             TextView seriesname = view.findViewById(R.id.movienamegridview);
             Glide.with(getContext())
-                    .load(seriesModel.imagelink)
+                    .load(seriesModel.seriesImageLink)
                     .into(seriesimag);
-            seriesname.setText(seriesModel.seriesname);
+            seriesname.setText(seriesModel.seriesName);
 
             seriesimag.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -232,7 +270,9 @@ InterstitialAd mInterstitialAd;
 
                             @Override
                             public void onAdFailedToLoad(int errorCode) {
-                                Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                                SeriesEpActivity.seriesName=seriesModel.seriesName;
+                                SeriesEpActivity.seriesModel=seriesModel;
                                 startActivity(intent);
                             }
 
@@ -243,7 +283,9 @@ InterstitialAd mInterstitialAd;
 
                             @Override
                             public void onAdClicked() {
-                                Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                                SeriesEpActivity.seriesName=seriesModel.seriesName;
+                                SeriesEpActivity.seriesModel=seriesModel;
                                 startActivity(intent);
                             }
 
@@ -254,7 +296,9 @@ InterstitialAd mInterstitialAd;
 
                             @Override
                             public void onAdClosed() {
-                                Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                                Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                                SeriesEpActivity.seriesName=seriesModel.seriesName;
+                                SeriesEpActivity.seriesModel=seriesModel;
                                 startActivity(intent);
                             }
                         });
@@ -263,7 +307,9 @@ InterstitialAd mInterstitialAd;
 
                     }
                     else {
-                        Intent intent=new Intent(getContext(),ViewMovieActivity.class);
+                        Intent intent=new Intent(getContext(),SeriesEpActivity.class);
+                        SeriesEpActivity.seriesName=seriesModel.seriesName;
+                        SeriesEpActivity.seriesModel=seriesModel;
                         startActivity(intent);
                     }
                 }
